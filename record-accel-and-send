@@ -1,0 +1,142 @@
+/*
+ * 
+ * This code reads a 200G accerlometer with any arduino running 3.3V and sends the total accerlation (hit) to an ESP8266 over Serial.  
+ * In this case I used a second serial hardware Serial1 as available in a Mega, teensy, leonardo uControllers. Could also use TX, pin 1 in an UNO.
+ * 
+
+*/
+
+int testX;
+int testY;
+int testZ;
+
+int newZeroX = 630; //initial zero values... these are the values read when your accelerometer is at rest (1G)
+int newZeroY = 630;
+int newZeroZ = 630;
+
+int delayBeforeZero = 200;  // now waiting 1 second before zero accerlation data back to 1G
+
+double xg, yg, zg;
+
+long now = 0;
+
+float totAcc = 0;
+
+//200g variables
+const int zAxis = A0;  //connect your accelerometer to analog pins available
+const int yAxis = A1;
+const int xAxis = A2;
+
+long reading = 0;
+
+int zeroAccelerometerFlag = 0;
+
+long currentTime = 0;
+long lastPrint = 0;
+
+long captureEventTime = 0;
+int captureEvent = 0;
+int totAccSend = 0;
+int highestTotAcc = 0;
+int delayAfterHit = 0;
+
+
+void setup() 
+{
+  Serial1.begin(9600);  //sends to esp8266 over serial
+  
+  Serial.begin(115200);
+
+
+
+  pinMode(xAxis, INPUT);
+  pinMode(yAxis, INPUT);
+  pinMode(zAxis, INPUT);
+
+
+}
+
+//-------------------------------------------------------BEGIN LOOP
+
+void loop(void) 
+{
+
+  currentTime = millis();
+
+  read200G(); //200G accelerometer
+  
+  if(totAcc > 15 && captureEvent == 0){  //if over 15g's a hit has occured
+    captureEvent = 1;
+    captureEventTime = currentTime;
+    totAccSend = 0;
+  }
+  
+  if(captureEvent == 1){  //if a hit has occured, start logging biggest impact for the next 5ms
+    //Serial.println(totAcc);
+    if(totAcc > totAccSend){
+      totAccSend = totAcc;
+    }
+  }
+
+  if(captureEvent == 1 && currentTime - captureEventTime > 5 && delayAfterHit == 0){  //after 5ms the event is over, send to ESP8266
+    delayAfterHit = 1;
+    Serial.println(totAccSend);
+    Serial1.print("~");  //ASCII 126 is first character sent to ESP8266
+    Serial1.println(totAccSend); //sned highest 'hit' value and then ASCII 13 carriage return
+    zeroAccelerometerFlag = 1;  //this was only required because my accelerometer was acting a bit glitchy...
+    lastPrint = currentTime;  
+  }
+
+
+
+  if(zeroAccelerometerFlag == 1 && currentTime - lastPrint > delayBeforeZero){  //this is a way to zero out the accelerometer ~200ms after an event (assumes a resting value of 1g has returned)
+    delayAfterHit = 0; //releases flag
+    captureEvent = 0;
+    zeroAccelerometerFlag = 0;
+    newZeroX = testX;
+    newZeroY = testY;
+    newZeroZ = testZ;
+  }
+}
+
+//******************************************************** END LOOP
+
+
+
+
+void read200G(){
+  double xg2, yg2, zg2;
+  
+  int x1 = analogRead(xAxis);
+  testX = x1;
+  int y1 = analogRead(yAxis);
+  testY = y1;
+  int z1 = analogRead(zAxis);
+  testZ = z1;
+  if(x1 >= newZeroX){
+    x1 = x1 - newZeroX;
+  } else {
+    x1 = newZeroX - x1;
+  }
+  if(y1 >= newZeroY){
+    y1 = y1 - newZeroY;
+  } else {
+    y1 = newZeroY - y1;
+  }
+  if(z1 >= newZeroZ){
+    z1 = z1 - newZeroZ;
+  } else {
+    z1 = newZeroZ - z1;
+  }  
+
+  // using +/- 8 Gs is 16/1024 = 0.0156
+  // using +/- 16 Gs is 32/1024 = 0.0312
+  // using +/- 200 Gs is 200/1024 = 0.1953
+  xg2 = x1 * 0.1953;
+  yg2 = y1 * 0.1953;
+  zg2 = z1 * 0.1953;
+
+  totAcc = sqrt(xg2*xg2 + yg2*yg2 + zg2*zg2);
+  
+}
+
