@@ -1,12 +1,10 @@
 # esp8266-serial-receive-and-send
 receive data from serial and send
 
-One sketch for the Arduino uController that collects accelerometer data and sends it to the esp8266 uController.
-Second sketch is the esp8266 uController receiving the data over serial and sending it to data.Sparkfun.com
+The 'record' sketch is for a uController that collects accelerometer data and sends it to the esp8266 uController.
+The 'esp8266' sketch receives the data over serial and sending it to data.Sparkfun.com
 
-Arduino sketch reads a 200G accerlometer with any arduino running 3.3V and sends the total accerlation (hit) to an ESP8266 over Serial.  
-In this case I used a second serial hardware Serial1 as available in a Mega, teensy, leonardo uControllers. Could also use TX, pin 1 in an UNO.
- 
+The 'record' sketch reads a 200G accerlometer with any arduino running 3.3V and sends the total accerlation (hit) to an ESP8266 over Serial. In this case I used a second serial hardware Serial1 as available in a Mega, teensy, leonardo uControllers. Could also use TX, pin 1 in an UNO with an appropriate level shifter.
  
 ESP8266 sketch runs on an nodeMcu or any ESP8266 uController.  The ESP8266 receives a serial value from an Arduino and sends data via HTTP GET requests to data.sparkfun.com service.
 
